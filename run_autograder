@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+cd /autograder/source
+#cp /autograder/{gson-2.10-javadoc.jar,junit-platform-console-standalone-1.9.1.jar} .
+mkdir -p out
+cp /autograder/submission/Median.java exammakeup/
+
+mkdir -p /autograder/results
+
+# compile everything
+# download the junit-platform-console and gson .jar files and stick them in the .zip file you
+# upload to gradescpe (there may be newer versions than these, so update if necessary)
+javac -d out -cp out:junit-platform-console-standalone-1.9.1.jar:gson-2.10.jar  PACKAGE_NAME/{list your autograder test files here}  exammakeup/{List, student, files, here} edu/utah/cs/autograder/*.java >>compileLog.txt 2>&1
+
+if [ $? -ne 0 ]; then #compile failed
+    echo "compile failed"
+    cat compileLog.txt
+    python3 compileFail.py
+    exit
+fi
+
+# Update these versions if necessary
+# This will find all the junit tests, run them, and dump json results in the expected place at the end
+java -jar junit-platform-console-standalone-1.9.1.jar --class-path out:gson-2.10.jar --scan-class-path
