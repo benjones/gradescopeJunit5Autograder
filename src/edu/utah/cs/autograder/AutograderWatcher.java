@@ -25,9 +25,9 @@ public class AutograderWatcher implements AfterTestExecutionCallback, AfterAllCa
 
     @Override
     public void afterAll(ExtensionContext extensionContext) throws Exception {
-        var resultsDir = new File("results");
+        var resultsDir = new File("/autograder/results");
         resultsDir.mkdir();
-        var resultsFile = new File("results/results.json");
+        var resultsFile = new File("/autograder/results/results.json");
         Files.write(resultsFile.toPath(), results.toJSON().getBytes());
         System.out.println("results saved to " + resultsFile.getAbsolutePath());
         System.out.println(results.toJSON());
