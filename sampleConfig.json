@@ -1,0 +1,11 @@
+{
+    "studentPackage" : "assignmentx",
+    "studentFiles" : ["file1.java", "file2.java"],
+    "autograderFiles" : ["edu/utah/cs/autograder/AutograderWatcher.java",
+                         "edu/utah/cs/autograder/GradedTest.java",
+                         "edu/utah/cs/autograder/StudentResults.java",
+                         "autograder/MyTests.java",
+                         "assignmentx/ProvidedFile.java"],
+    "jars" : ["gson-2.10.jar", "junit-platform-console-standalone-1.9.1.jar" ]
+
+}
