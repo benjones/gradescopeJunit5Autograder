@@ -14,4 +14,5 @@ public @interface GradedTest {
     double max_score() default 1;
     String visibility() default "visible";
     public static final String afterDueDate = "after_due_date";
+    public static final String afterPublished = "after_published";
 }

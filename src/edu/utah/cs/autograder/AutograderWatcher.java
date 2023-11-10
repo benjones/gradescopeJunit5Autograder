@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -28,8 +29,17 @@ public class AutograderWatcher implements AfterTestExecutionCallback, AfterAllCa
         var resultsDir = new File("/autograder/results");
         resultsDir.mkdir();
         var resultsFile = new File("/autograder/results/results.json");
-        Files.write(resultsFile.toPath(), results.toJSON().getBytes());
-        System.out.println("results saved to " + resultsFile.getAbsolutePath());
+        try {
+
+            Files.write(resultsFile.toPath(), results.toJSON().getBytes());
+            System.out.println("results saved to " + resultsFile.getAbsolutePath());
+        } catch(IOException e) {
+            //couldn't make /autograder, so probably running locally
+            System.out.println("couldn't make /autograder/results folder, just printing the results");
+        }
         System.out.println(results.toJSON());
+        var totalPoints = results.tests.stream().mapToDouble(x -> x.max_score).sum();
+        System.out.println("total points: " + totalPoints);
+
     }
 }
