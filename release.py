@@ -14,7 +14,7 @@ and zips everything you need up
 It will assume you're in the top level of your project, so it will automatically prepend 'src/'
 when looking for files to zip
 
-It will look for the specified jar files in the PWD
+It will look for the extra files and specified jar files in the PWD
 
 '''
 
@@ -105,4 +105,8 @@ for jar in config['jars']:
 
 for f in config['autograderFiles']:
     output.write("src/" + f, f)
+
+if 'extraFiles' in config:
+    for f in config['extraFiles']:
+        output.write(f, f)
 
