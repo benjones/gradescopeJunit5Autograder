@@ -16,6 +16,8 @@ when looking for files to zip
 
 It will look for the extra files and specified jar files in the PWD
 
+If you want want to compile all provided student files (ie something like `javac studentPackage/*.java`), leave the `studentFiles` field blank.  Note that this will probably break if there are multiple `main` methods
+
 '''
 
 import sys
@@ -38,12 +40,12 @@ cd /autograder/source
 
 mkdir -p out
 mkdir -p $studentPackage 
-cp $studentFiles $studentPackage
+$copyCommand
 
 mkdir -p /autograder/results
 
 # compile everything
-javac -d out -cp out:$jarList $allJavaFiles >>compileLog.txt 2>&1
+$compileCommand
 
 if [ $$? -ne 0 ]; then #compile failed
     echo "compile failed"
@@ -59,15 +61,31 @@ from glob import glob
 import itertools
 
 
-allJavaFiles = list(itertools.chain(map( lambda x: config['studentPackage'] + "/" + x,
+
+studentPackage = config['studentPackage']
+jarList = ":".join(config['jars']) if 'jars' in config else ''
+
+copyCommand = ""
+compileCommand = ""
+if 'studentFiles' in config:
+    listOfStudentFiles = " ".join(map(lambda x : "/autograder/submission/" + x, config['studentFiles']))
+    copyCommand = 'cp {0} {1}'.format(studentFiles, studentPackage)
+    allJavaFiles = list(itertools.chain(map( lambda x: config['studentPackage'] + "/" + x,
                                          config['studentFiles']),
                                     config["autograderFiles"]))
 
+    compileCommand = 'javac -d out -cp out:{jarList} {allJavaFiles} >>compileLog.txt 2>&1'.format_map({'jarList' : jarList,
+                                                                                                       'allJavaFiles': " ".join(allJavaFiles)})
+else:
+    copyCommand = 'cp /autograder/submission/* ' + studentPackage
+    compileCommand = 'javac -d out -cp out:{jarList} {studentPackage}/*.java {autograderFiles} >>compileLog.txt 2>&1'.format_map({'jarList' : jarList, 'studentPackage': studentPackage, 'autograderFiles' : " ".join(config["autograderFiles"])})
+    
+    
 substitutions = {
-    "studentPackage" : config['studentPackage'],
-    "studentFiles" : " ".join(map(lambda x : "/autograder/submission/" + x, config['studentFiles'])),
-    "jarList" : ":".join(config['jars']),
-    "allJavaFiles" : " ".join(allJavaFiles)
+    "studentPackage" : studentPackage,
+    "copyCommand" : copyCommand,
+    "jarList" : jarList,
+    "compileCommand" : compileCommand
 }
 
 runAutograderContents = run_autograder_template.substitute(substitutions)
