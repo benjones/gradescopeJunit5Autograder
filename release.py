@@ -69,7 +69,7 @@ copyCommand = ""
 compileCommand = ""
 if 'studentFiles' in config:
     listOfStudentFiles = " ".join(map(lambda x : "/autograder/submission/" + x, config['studentFiles']))
-    copyCommand = 'cp {0} {1}'.format(studentFiles, studentPackage)
+    copyCommand = 'cp {0} {1}'.format(listOfStudentFiles, studentPackage)
     allJavaFiles = list(itertools.chain(map( lambda x: config['studentPackage'] + "/" + x,
                                          config['studentFiles']),
                                     config["autograderFiles"]))
