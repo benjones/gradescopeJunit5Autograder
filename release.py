@@ -7,7 +7,7 @@ to run and test it and make sure everything compiles, etc.
 The script takes a JSON description of your project (see the sample included for info)
 the copies appropriate files into the right spot for the autograder
 
-fills in a run_autograder template script
+fills in a run_autograder template script, or if run_autograder exists in the working directory, uses that
 
 and zips everything you need up
 
@@ -59,7 +59,7 @@ java -jar junit-platform-console-standalone-1.9.1.jar --class-path out:$jarList 
 
 from glob import glob
 import itertools
-
+import os
 
 
 studentPackage = config['studentPackage']
@@ -88,7 +88,14 @@ substitutions = {
     "compileCommand" : compileCommand
 }
 
-runAutograderContents = run_autograder_template.substitute(substitutions)
+# if run_autograder exists, use that, otherwise use the default template
+runAutograderContents = ""
+if os.path.exists("run_autograder"):
+    print("Using run_autograder script from project folder")
+    runAutograderContents = open('run_autograder', encoding="utf-8").read()
+else:
+    print("Using default run_autograder script")
+    runAutograderContents = run_autograder_template.substitute(substitutions)
 
 
 compileFailContents = '''#!/usr/bin/env python3
