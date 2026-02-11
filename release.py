@@ -33,6 +33,20 @@ config = json.load(open(sys.argv[1]))
 
 print(json.dumps(config))
 
+# command or onFail should write to /autograder/results/results.json
+def tryOrFail(command, onFail = ""):
+    return '''
+    {0}
+    exit_status=$?
+    if [ $exit_status -eq 1 ]; then
+        echo "{0} failed"
+        {1}
+        exit $exit_status
+    fi
+
+    '''.format(command, onFail)
+
+
 from string import Template
 run_autograder_template = Template('''#!/usr/bin/env bash
 
@@ -44,22 +58,19 @@ $copyCommand
 
 mkdir -p /autograder/results
 
+$checkFilesCommand
+
 # compile everything
 $compileCommand
 
-if [ $$? -ne 0 ]; then #compile failed
-    echo "compile failed"
-    cat compileLog.txt
-    python3 compileFail.py
-    exit
-fi
-
-java -jar junit-platform-console-standalone-1.9.1.jar --class-path out:$jarList --scan-class-path
+java -jar junit-platform-console-standalone-1.14.2.jar --class-path out:$jarList --scan-class-path
 ''')
 
 from glob import glob
 import itertools
 import os
+
+
 
 
 studentPackage = config['studentPackage']
@@ -84,8 +95,9 @@ else:
 substitutions = {
     "studentPackage" : studentPackage,
     "copyCommand" : copyCommand,
+    "checkFilesCommand" : tryOrFail("python3 checkForFiles.py {0}".format(listOfStudentFiles) ),
     "jarList" : jarList,
-    "compileCommand" : compileCommand
+    "compileCommand" : tryOrFail(compileCommand, "python3 compileFail.py")
 }
 
 # if run_autograder exists, use that, otherwise use the default template
@@ -116,11 +128,28 @@ setupShContents = '''#!/usr/bin/env bash
 # nothing to do...
 '''
 
+checkFilesScript = '''#!/usr/bin/env python3
+import os
+import sys
+import json
+
+for f in sys.argv[1:]:
+    if not os.path.exists(f):
+        res = {}
+        res['score'] = 0
+        res['output'] = "Expected file " + f + " missing.  You will currently earn 0 autograder points. Please make sure all required files are included and resubmit."
+
+        f = open('/autograder/results/results.json', 'w', encoding="utf-8")
+        f.write(json.dumps(res))
+        sys.exit(1)
+'''
+
 from zipfile import ZipFile
 
 output = ZipFile(config['studentPackage'] + "_autograder.zip", 'w')
 for path, contents in {"run_autograder" : runAutograderContents,
                   "compileFail.py" : compileFailContents,
+                  "checkForFiles.py" : checkFilesScript,
                   "setup.sh" : setupShContents}.items():
     output.writestr(path, contents)
 
