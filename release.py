@@ -18,6 +18,17 @@ It will look for the extra files and specified jar files in the PWD
 
 If you want want to compile all provided student files (ie something like `javac studentPackage/*.java`), leave the `studentFiles` field blank.  Note that this will probably break if there are multiple `main` methods
 
+the signatureChecks field takes a list of classes, with their list of method signatures (name, return type, arg types).
+The example below just has a single class with 4 methods to check
+
+"signatureChecks" : [{"className" : "assign06.Word",
+    "methods":  [
+      {"name": "countOccurrences", "returnType": "int", "args" : ["char"]},
+      {"name": "reverse", "returnType" : "class assign06.Word", "args": []},
+      {"name": "capitalizeLastOccurrence", "returnType": "void", "args": ["char"]},
+      {"name": "toString", "returnType": "class java.lang.String", "args": []}
+    ]}]
+
 '''
 
 import sys
@@ -59,9 +70,12 @@ $copyCommand
 mkdir -p /autograder/results
 
 $checkFilesCommand
+$compileStudentCodeCommand
+$signatureCheckCommand
+#compile tests
 
 # compile everything
-$compileCommand
+$compileAllCodeCommand
 
 java -jar junit-platform-console-standalone-1.14.2.jar --class-path out:$jarList --scan-class-path
 ''')
@@ -77,27 +91,41 @@ studentPackage = config['studentPackage']
 jarList = ":".join(config['jars']) if 'jars' in config else ''
 
 copyCommand = ""
-compileCommand = ""
+compileStudentCodeCommand = ""
+checkFilesCommand = ""
+signatureCheckCommand = ""
+compileAllCodeCommand = ""
 if 'studentFiles' in config:
     listOfStudentFiles = " ".join(map(lambda x : "/autograder/submission/" + x, config['studentFiles']))
     copyCommand = 'cp {0} {1}'.format(listOfStudentFiles, studentPackage)
     allJavaFiles = list(itertools.chain(map( lambda x: config['studentPackage'] + "/" + x,
                                          config['studentFiles']),
                                     config["autograderFiles"]))
+    checkFilesCommand = tryOrFail("python3 checkForFiles.py {0}".format(listOfStudentFiles))
+    compileStudentCodeCommand = 'javac -d out {listOfStudentFiles} >>compileLog.txt 2>&1'.format_map(
+        {'listOfStudentFiles' : listOfStudentFiles})
+    compileAllCodeCommand = 'javac -d out -cp out:{jarList} {allJavaFiles} >>compileLog.txt 2>&1'.format_map(
+    {'jarList' : jarList, 'allJavaFiles' : " ".join(allJavaFiles)})
 
-    compileCommand = 'javac -d out -cp out:{jarList} {allJavaFiles} >>compileLog.txt 2>&1'.format_map({'jarList' : jarList,
-                                                                                                       'allJavaFiles': " ".join(allJavaFiles)})
 else:
     copyCommand = 'cp /autograder/submission/* ' + studentPackage
-    compileCommand = 'javac -d out -cp out:{jarList} {studentPackage}/*.java {autograderFiles} >>compileLog.txt 2>&1'.format_map({'jarList' : jarList, 'studentPackage': studentPackage, 'autograderFiles' : " ".join(config["autograderFiles"])})
-    
+    compileStudentCodeCommand = 'javac -d out {studentPackage}/*.java >>compileLog.txt 2>&1'.format_map({'studentPackage': studentPackage})
+    compileAllCodeCommand = 'javac -d out -cp out:{jarList} {studentPackage}/*.java {autograderFiles} >>compileLog.txt 2>&1'.format_map({'jarList' : jarList, 'studentPackage': studentPackage, 'autograderFiles' : " ".join(config["autograderFiles"])})
+
+methodCheckFiles = {}
+signatureCheckCommand = ""
+if 'signatureChecks' in config:
+    methodCheckFiles['methodSignatures.json'] = json.dumps(config['signatureChecks'])
+    signatureCheckCommand = tryOrFail("java -cp out:{jarList} edu/utah/cs/autograder/MethodSignatureChecker.java < methodSignatures.json".format_map({"jarList" : jarList}))
     
 substitutions = {
     "studentPackage" : studentPackage,
     "copyCommand" : copyCommand,
-    "checkFilesCommand" : tryOrFail("python3 checkForFiles.py {0}".format(listOfStudentFiles) ),
+    "checkFilesCommand" : checkFilesCommand,
+    "compileStudentCodeCommand" : tryOrFail(compileStudentCodeCommand, "python3 compileFail.py"),
+    "signatureCheckCommand" : signatureCheckCommand,
     "jarList" : jarList,
-    "compileCommand" : tryOrFail(compileCommand, "python3 compileFail.py")
+    "compileAllCodeCommand" : tryOrFail(compileAllCodeCommand, "python3 compileFail.py")
 }
 
 # if run_autograder exists, use that, otherwise use the default template
@@ -110,7 +138,8 @@ else:
     runAutograderContents = run_autograder_template.substitute(substitutions)
 
 
-compileFailContents = '''#!/usr/bin/env python3
+scripts = {
+"compileFail.py": '''#!/usr/bin/env python3
 
 import json
 
@@ -120,15 +149,14 @@ res['output'] = "Failed to compile: " + open('compileLog.txt', encoding='utf-8')
 
 f = open('/autograder/results/results.json', 'w', encoding="utf-8")
 f.write(json.dumps(res))
-'''
+''',
 
-setupShContents = '''#!/usr/bin/env bash
+"setup.sh": '''#!/usr/bin/env bash
 
 # autograder uses gson and the junit 5 runner
 # nothing to do...
-'''
-
-checkFilesScript = '''#!/usr/bin/env python3
+''',
+"checkForFiles.py": '''#!/usr/bin/env python3
 import os
 import sys
 import json
@@ -143,14 +171,13 @@ for f in sys.argv[1:]:
         f.write(json.dumps(res))
         sys.exit(1)
 '''
-
+}
 from zipfile import ZipFile
 
+zipContents = scripts | {'run_autograder' : runAutograderContents} | methodCheckFiles
+
 output = ZipFile(config['studentPackage'] + "_autograder.zip", 'w')
-for path, contents in {"run_autograder" : runAutograderContents,
-                  "compileFail.py" : compileFailContents,
-                  "checkForFiles.py" : checkFilesScript,
-                  "setup.sh" : setupShContents}.items():
+for path, contents in zipContents.items():
     output.writestr(path, contents)
 
 

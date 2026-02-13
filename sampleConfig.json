@@ -4,8 +4,17 @@
     "autograderFiles" : ["edu/utah/cs/autograder/AutograderWatcher.java",
                          "edu/utah/cs/autograder/GradedTest.java",
                          "edu/utah/cs/autograder/StudentResults.java",
+                          "edu/utah/cs/autograder/MethodSignatureChecker.java",
                          "autograder/MyTests.java",
                          "assignmentx/ProvidedFile.java"],
     "extraFiles" : ["someInputFile.txt", "anotherProvidedFile.xml"],
-    "jars" : ["gson-2.10.jar", "junit-platform-console-standalone-1.9.1.jar" ]
+    "jars" : ["gson-2.10.jar", "junit-platform-console-standalone-1.9.1.jar" ],
+
+    "signatureChecks" : [{"className" : "assign06.Word",
+    "methods":  [
+      {"name": "countOccurrences", "returnType": "int", "args" : ["char"]},
+      {"name": "reverse", "returnType" : "class assign06.Word", "args": []},
+      {"name": "capitalizeLastOccurrence", "returnType": "void", "args": ["char"]},
+      {"name": "toString", "returnType": "class java.lang.String", "args": []}
+    ]}]
 }

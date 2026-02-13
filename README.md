@@ -29,6 +29,7 @@ Write your tests.  I usually put them in a different package (like `autograderte
 Edit your assignment properties JSON description (modify the sample provided below)
 
 run `python3 release.py <your description json>` to produce a zip file.  The python script can be anywhere, but the CWD should be the top level of your project.  It needs to contain the src folder, any extra files you want to include, and the JARs you specify.
+See release.py for info about some options you can include in your autograderConfig.json
 
 Now we're ready to go to "configure autograder" on gradescope
 
